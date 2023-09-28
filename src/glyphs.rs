@@ -54,6 +54,38 @@ impl GlyphCache {
         }
     }
 
+    pub fn get_image_mask(
+        &mut self,
+        hash: &[u8],
+        width: u32,
+        height: u32,
+        image: &[u8],
+    ) -> AtlasInfo {
+        if !self.svg_infos.contains_key(hash) {
+            self.svg_infos.insert(hash.to_vec(), HashMap::new());
+        }
+
+        {
+            let svg_infos = self.svg_infos.get(hash).unwrap();
+            if let Some(info) = svg_infos.get(&(width, height)) {
+                return info.clone();
+            }
+        }
+
+        let rect = self.color_atlas.add_region(image, width, height);
+        let info = AtlasInfo {
+            rect,
+            left: 0,
+            top: 0,
+            colored: true,
+        };
+
+        let svg_infos = self.svg_infos.get_mut(hash).unwrap();
+        svg_infos.insert((width, height), info.clone());
+
+        info
+    }
+
     pub fn get_svg_mask(
         &mut self,
         hash: &[u8],

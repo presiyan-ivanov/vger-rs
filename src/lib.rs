@@ -731,6 +731,37 @@ impl Vger {
         }
     }
 
+    pub fn render_image(
+        &mut self,
+        x: f32,
+        y: f32,
+        hash: &[u8],
+        width: u32,
+        height: u32,
+        image: &[u8],
+    ) {
+
+        let info = self.glyph_cache.get_image_mask(hash, width, height, image);
+        if let Some(rect) = info.rect {
+            let mut prim = Prim::default();
+            prim.prim_type = PrimType::ColorGlyph as u32;
+
+            let x = x + info.left as f32;
+            let y = y - info.top as f32;
+            prim.quad_bounds = [x, y, x + rect.width as f32, y + rect.height as f32];
+
+            prim.tex_bounds = [
+                rect.x as f32,
+                rect.y as f32,
+                (rect.x + rect.width) as f32,
+                (rect.y + rect.height) as f32,
+            ];
+            prim.scissor = self.add_scissor() as u32;
+
+            self.render(prim);
+        }
+    }
+
     pub fn render_svg(
         &mut self,
         x: f32,
