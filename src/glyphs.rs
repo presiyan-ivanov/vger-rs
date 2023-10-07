@@ -18,7 +18,7 @@ pub struct AtlasInfo {
 }
 
 pub enum PixelFormat {
-    // Rgb,
+    //TODO: add Rgb(currently we assume Rgba everywhere)
     Rgba,
 }
 
