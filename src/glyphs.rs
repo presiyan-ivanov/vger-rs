@@ -17,6 +17,18 @@ pub struct AtlasInfo {
     pub colored: bool,
 }
 
+pub enum PixelFormat {
+    // Rgb,
+    Rgba,
+}
+
+pub struct Image {
+    pub width: u32,
+    pub height: u32,
+    pub data: Vec<u8>,
+    pub pixel_format: PixelFormat,
+}
+
 pub struct GlyphCache {
     pub mask_atlas: Atlas,
     pub color_atlas: Atlas,
@@ -33,6 +45,7 @@ pub struct GlyphCache {
         AtlasInfo,
     >,
     svg_infos: HashMap<Vec<u8>, HashMap<(u32, u32), AtlasInfo>>,
+    img_infos: HashMap<Vec<u8>, HashMap<(u32, u32), AtlasInfo>>,
 }
 
 impl GlyphCache {
@@ -50,6 +63,7 @@ impl GlyphCache {
             font: fontdue::Font::from_bytes(font, settings).unwrap(),
             info: HashMap::new(),
             atlas_infos: HashMap::new(),
+            img_infos: HashMap::new(),
             svg_infos: HashMap::new(),
         }
     }
@@ -59,20 +73,22 @@ impl GlyphCache {
         hash: &[u8],
         width: u32,
         height: u32,
-        image: &[u8],
+        image_fn: impl FnOnce() -> Image,
     ) -> AtlasInfo {
-        if !self.svg_infos.contains_key(hash) {
-            self.svg_infos.insert(hash.to_vec(), HashMap::new());
+        if !self.img_infos.contains_key(hash) {
+            self.img_infos.insert(hash.to_vec(), HashMap::new());
         }
 
         {
-            let svg_infos = self.svg_infos.get(hash).unwrap();
-            if let Some(info) = svg_infos.get(&(width, height)) {
+            let img_infos = self.img_infos.get(hash).unwrap();
+            if let Some(info) = img_infos.get(&(width, height)) {
                 return info.clone();
             }
         }
-
-        let rect = self.color_atlas.add_region(image, width, height);
+        let image = image_fn();
+        let rect = self
+            .color_atlas
+            .add_region(&image.data, image.width, image.height);
         let info = AtlasInfo {
             rect,
             left: 0,
@@ -80,8 +96,8 @@ impl GlyphCache {
             colored: true,
         };
 
-        let svg_infos = self.svg_infos.get_mut(hash).unwrap();
-        svg_infos.insert((width, height), info.clone());
+        let img_info_map = self.img_infos.get_mut(hash).unwrap();
+        img_info_map.insert((width, height), info);
 
         info
     }
